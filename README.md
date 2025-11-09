@@ -1,5 +1,18 @@
 # Code Index MCP
 
+## ⚠️ **FOR AI AGENTS USING OI OS (Brain Trust 4)**
+
+**If you are an AI agent installing this server into OI OS, please see [`OI.md`](./OI.md) for complete installation instructions, including:**
+- Intent mappings for natural language queries
+- Parameter rules for tool calls
+- Parameter extractors configuration
+- OI OS-specific setup and troubleshooting
+- Python version requirements and solutions
+
+**The `OI.md` file contains all the SQL and TOML configurations needed for full OI OS integration.**
+
+---
+
 <div align="center">
 
 [![MCP Server](https://img.shields.io/badge/MCP-Server-blue)](https://modelcontextprotocol.io)

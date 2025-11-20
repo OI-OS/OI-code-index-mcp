@@ -1,0 +1,169 @@
+{
+  "server_name": "OI-code-index-mcp",
+  "version": "1.0.0",
+  "intents": [
+    {
+      "keyword": "set project path",
+      "tool_name": "set_project_path",
+      "priority": 10
+    },
+    {
+      "keyword": "initialize project",
+      "tool_name": "set_project_path",
+      "priority": 10
+    },
+    {
+      "keyword": "set project",
+      "tool_name": "set_project_path",
+      "priority": 10
+    },
+    {
+      "keyword": "index project",
+      "tool_name": "set_project_path",
+      "priority": 10
+    },
+    {
+      "keyword": "search code",
+      "tool_name": "search_code_advanced",
+      "priority": 10
+    },
+    {
+      "keyword": "search for code",
+      "tool_name": "search_code_advanced",
+      "priority": 10
+    },
+    {
+      "keyword": "find code",
+      "tool_name": "search_code_advanced",
+      "priority": 10
+    },
+    {
+      "keyword": "code search",
+      "tool_name": "search_code_advanced",
+      "priority": 10
+    },
+    {
+      "keyword": "find files",
+      "tool_name": "find_files",
+      "priority": 10
+    },
+    {
+      "keyword": "search files",
+      "tool_name": "find_files",
+      "priority": 10
+    },
+    {
+      "keyword": "locate files",
+      "tool_name": "find_files",
+      "priority": 10
+    },
+    {
+      "keyword": "get file summary",
+      "tool_name": "get_file_summary",
+      "priority": 10
+    },
+    {
+      "keyword": "analyze file",
+      "tool_name": "get_file_summary",
+      "priority": 10
+    },
+    {
+      "keyword": "file summary",
+      "tool_name": "get_file_summary",
+      "priority": 10
+    },
+    {
+      "keyword": "refresh index",
+      "tool_name": "refresh_index",
+      "priority": 10
+    },
+    {
+      "keyword": "rebuild index",
+      "tool_name": "refresh_index",
+      "priority": 10
+    },
+    {
+      "keyword": "update index",
+      "tool_name": "refresh_index",
+      "priority": 10
+    },
+    {
+      "keyword": "build deep index",
+      "tool_name": "build_deep_index",
+      "priority": 10
+    },
+    {
+      "keyword": "deep index",
+      "tool_name": "build_deep_index",
+      "priority": 10
+    },
+    {
+      "keyword": "get settings",
+      "tool_name": "get_settings_info",
+      "priority": 10
+    },
+    {
+      "keyword": "settings info",
+      "tool_name": "get_settings_info",
+      "priority": 10
+    },
+    {
+      "keyword": "create temp directory",
+      "tool_name": "create_temp_directory",
+      "priority": 10
+    },
+    {
+      "keyword": "check temp directory",
+      "tool_name": "check_temp_directory",
+      "priority": 10
+    },
+    {
+      "keyword": "clear settings",
+      "tool_name": "clear_settings",
+      "priority": 10
+    },
+    {
+      "keyword": "refresh search tools",
+      "tool_name": "refresh_search_tools",
+      "priority": 10
+    },
+    {
+      "keyword": "file watcher status",
+      "tool_name": "get_file_watcher_status",
+      "priority": 10
+    },
+    {
+      "keyword": "configure file watcher",
+      "tool_name": "configure_file_watcher",
+      "priority": 10
+    }
+  ],
+  "parameter_extractors": {
+    "set_project_path": {
+      "OI-code-index-mcp::set_project_path.path": "conditional:if_contains:/|then:regex:(/[^\\s]+|\\S+)|else:regex:(?:path|project[\\s_-]?path|directory|dir|project)[\\s:]+([^\\s]+)"
+    },
+    "search_code_advanced": {
+      "OI-code-index-mcp::search_code_advanced.pattern": "remove:search,find,for,code,in,with,the,a,an",
+      "OI-code-index-mcp::search_code_advanced.case_sensitive": "regex:(?:case[\\s_-]?sensitive|case[\\s_-]?insensitive)[\\s:]+(true|false|yes|no)",
+      "OI-code-index-mcp::search_code_advanced.context_lines": "regex:(?:context[\\s_-]?lines?|lines?[\\s_-]?of[\\s_-]?context)[\\s:]+(\\d+)",
+      "OI-code-index-mcp::search_code_advanced.file_pattern": "regex:(?:file[\\s_-]?pattern|pattern|files?|in[\\s_-]?files?)[\\s:]+([^\\s]+(?:\\s+[^\\s]+)*)",
+      "OI-code-index-mcp::search_code_advanced.fuzzy": "regex:(?:fuzzy|fuzzy[\\s_-]?match)[\\s:]+(true|false|yes|no)",
+      "OI-code-index-mcp::search_code_advanced.regex": "regex:(?:regex|regular[\\s_-]?expression)[\\s:]+(true|false|yes|no)",
+      "OI-code-index-mcp::search_code_advanced.start_index": "regex:(?:start[\\s_-]?index|offset|page)[\\s:]+(\\d+)",
+      "OI-code-index-mcp::search_code_advanced.max_results": "regex:(?:max[\\s_-]?results?|limit|count)[\\s:]+(\\d+)"
+    },
+    "find_files": {
+      "OI-code-index-mcp::find_files.pattern": "conditional:if_contains:*|then:regex:([^\\s]+)|else:remove:find,search,locate,files?,for,with,the,a,an"
+    },
+    "get_file_summary": {
+      "OI-code-index-mcp::get_file_summary.file_path": "regex:(?:file[\\s_-]?path|path|file)[\\s:]+([^\\s]+(?:\\s+[^\\s]+)*)"
+    },
+    "configure_file_watcher": {
+      "OI-code-index-mcp::configure_file_watcher.enabled": "regex:(?:enabled?|enable|disable)[\\s:]+(true|false|yes|no|on|off)",
+      "OI-code-index-mcp::configure_file_watcher.debounce_seconds": "regex:(?:debounce[\\s_-]?seconds?|debounce)[\\s:]+([\\d.]+)",
+      "OI-code-index-mcp::configure_file_watcher.additional_exclude_patterns": "regex:(?:exclude[\\s_-]?patterns?|exclude)[\\s:]+([^\\s]+(?:\\s*,\\s*[^\\s]+)*)"
+    }
+  },
+  "reminder_message": "Code indexing MCP server for searching and analyzing code repositories. Requires Python 3.10+. Set project path before use. Supports advanced code search, file discovery, and file analysis with tree-sitter AST parsing."
+}
+

@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from typing import AsyncIterator, Dict, Any, List, Optional
 
 # Third-party imports
-from mcp.server.fastmcp import FastMCP, Context
+from fastmcp import FastMCP, Context
 
 # Local imports
 from .project_settings import ProjectSettings
@@ -89,7 +89,13 @@ async def indexer_lifespan(_server: FastMCP) -> AsyncIterator[CodeIndexerContext
     base_path = ""  # Empty string to indicate no path is set
 
     # Initialize settings manager with skip_load=True to skip loading files
-    settings = ProjectSettings(base_path, skip_load=True)
+    # Wrap in try/except to handle any initialization errors gracefully
+    try:
+        settings = ProjectSettings(base_path, skip_load=True)
+    except Exception as exc:
+        logger.warning("Failed to initialize ProjectSettings (using minimal config): %s", exc)
+        # Create a minimal settings object if initialization fails
+        settings = ProjectSettings(base_path, skip_load=True)
 
     # Initialize context - file watcher will be initialized later when project path is set
     context = CodeIndexerContext(
@@ -99,53 +105,55 @@ async def indexer_lifespan(_server: FastMCP) -> AsyncIterator[CodeIndexerContext
     )
 
     try:
-        # Bootstrap project path when provided via CLI.
-        if _CLI_CONFIG.project_path:
-            bootstrap_ctx = Context(
-                request_context=_BootstrapRequestContext(context),
-                fastmcp=mcp
-            )
-            try:
-                message = ProjectManagementService(bootstrap_ctx).initialize_project(
-                    _CLI_CONFIG.project_path
-                )
-                logger.info("Project initialized from CLI flag: %s", message)
-            except Exception as exc:  # pylint: disable=broad-except
-                logger.error("Failed to initialize project from CLI flag: %s", exc)
-                raise RuntimeError(
-                    f"Failed to initialize project path '{_CLI_CONFIG.project_path}'"
-                ) from exc
-
-        # Provide context to the server
+        # Provide context to the server immediately
+        # Bootstrap will happen later via tool calls if needed
         yield context
     finally:
         # Stop file watcher if it was started
-        if context.file_watcher_service:
-            context.file_watcher_service.stop_monitoring()
+        try:
+            if context.file_watcher_service:
+                context.file_watcher_service.stop_monitoring()
+        except Exception as exc:
+            logger.debug("Error stopping file watcher: %s", exc)
 
 # Create the MCP server with lifespan manager
-mcp = FastMCP("CodeIndexer", lifespan=indexer_lifespan, dependencies=["pathlib"])
+mcp = FastMCP("CodeIndexer", lifespan=indexer_lifespan)
 
 # ----- RESOURCES -----
+# Temporarily disabled to debug TaskGroup issue
+# Resources will be re-enabled once the async issue is resolved
 
-@mcp.resource("config://code-indexer")
-@handle_mcp_resource_errors
-def get_config() -> str:
-    """Get the current configuration of the Code Indexer."""
-    ctx = mcp.get_context()
-    return ProjectManagementService(ctx).get_project_config()
+# @mcp.resource("config://code-indexer")
+# @handle_mcp_resource_errors
+# def get_config() -> str:
+#     """Get the current configuration of the Code Indexer."""
+#     try:
+#         ctx = mcp.get_context()
+#         if ctx is None:
+#             return "{}"
+#         return ProjectManagementService(ctx).get_project_config()
+#     except (AttributeError, RuntimeError, TypeError, ValueError) as e:
+#         logger.debug("Context not available for get_config: %s", e)
+#         return "{}"
+#     except Exception as e:
+#         logger.debug("Unexpected error in get_config: %s", e)
+#         return "{}"
 
-@mcp.resource("files://{file_path}")
-@handle_mcp_resource_errors
-def get_file_content(file_path: str) -> str:
-    """Get the content of a specific file."""
-    ctx = mcp.get_context()
-    # Use FileService for simple file reading - this is appropriate for a resource
-    return FileService(ctx).get_file_content(file_path)
-
-# Removed: structure://project resource - not necessary for most workflows
-# Removed: settings://stats resource - this information is available via get_settings_info() tool
-# and is more of a debugging/technical detail rather than context AI needs
+# @mcp.resource("files://{file_path}")
+# @handle_mcp_resource_errors
+# def get_file_content(file_path: str) -> str:
+#     """Get the content of a specific file."""
+#     try:
+#         ctx = mcp.get_context()
+#         if ctx is None:
+#             return ""
+#         return FileService(ctx).get_file_content(file_path)
+#     except (AttributeError, RuntimeError, TypeError, ValueError) as e:
+#         logger.debug("Context not available for get_file_content: %s", e)
+#         return ""
+#     except Exception as e:
+#         logger.debug("Unexpected error in get_file_content: %s", e)
+#         return ""
 
 # ----- TOOLS -----
 
@@ -388,12 +396,13 @@ def main(argv: list[str] | None = None):
 
     try:
         mcp.run(**run_kwargs)
-    except RuntimeError as exc:
-        logger.error("MCP server terminated with error: %s", exc)
-        raise SystemExit(1) from exc
-    except Exception as exc:  # pylint: disable=broad-except
-        logger.error("Unexpected MCP server error: %s", exc)
-        raise
+    except* Exception as exc_group:  # Handle ExceptionGroup from anyio TaskGroup
+        logger.error("MCP server error group: %s", exc_group)
+        for exc in exc_group.exceptions:
+            logger.error("  Exception: %s", exc)
+            import traceback
+            logger.error("  Traceback: %s", traceback.format_exc())
+        raise SystemExit(1) from exc_group
 
 if __name__ == '__main__':
     main()
